@@ -7,6 +7,7 @@ A GitHub Action that finds the OpenAI, Anthropic and Google model IDs in your co
 - which models are **legacy or preview**
 - a **cheaper model in the same tier**, if there is one
 - what changed when a pull request **switches models**, with the price difference and, if you give your volume, the monthly cost before and after
+- models a provider is **retiring or switching over**, with the date and what replaces them (for example Gemini 2.5 Pro and 2.5 Flash on 1 December 2026)
 - model-like IDs that are **not in the current price list** (older generations, typos, aliases)
 
 No API keys and no dependencies. Prices come from the open [AiGanak LLM price data](https://github.com/AiGanak/llm-prices), checked weekly against the providers' pricing pages.

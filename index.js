@@ -7,6 +7,7 @@ const path = require("path");
 const { execFileSync } = require("child_process");
 
 const DATA_URL = "https://cdn.jsdelivr.net/gh/AiGanak/llm-prices@main/data/prices.json";
+const RETIRE_URL = "https://cdn.jsdelivr.net/gh/AiGanak/llm-prices@main/data/retirements.json";
 const SITE = "https://aiganak.com";
 const MARK = "<!-- llm-cost-check -->";
 const TEXT_EXT = /\.(js|mjs|cjs|ts|tsx|jsx|py|rb|go|rs|java|kt|kts|swift|cs|php|scala|ex|exs|dart|lua|r|jl|sh|bash|zsh|ps1|ya?ml|json|jsonc|toml|ini|cfg|conf|env|properties|md|mdx|txt|ipynb|tf|hcl|sql|vue|svelte|astro|html)$/i;
@@ -23,6 +24,14 @@ const usd = (n) => "$" + (Number.isInteger(n) ? n.toString() : Math.abs(n * 100 
 const pct = (a, b) => Math.round(((b - a) / a) * 100);
 const blended = (p) => (3 * p.input + p.output) / 4; // 3:1 input:output, a common chat mix
 const money = (n) => "$" + (n >= 100 ? Math.round(n).toLocaleString("en-US") : n.toFixed(2));
+
+async function loadRetirements() {
+  try {
+    const r = await fetch(RETIRE_URL, { signal: AbortSignal.timeout(8000) });
+    if (r.ok) { const j = await r.json(); if (Array.isArray(j.models)) return j.models; }
+  } catch (e) { /* fall back */ }
+  try { return JSON.parse(fs.readFileSync(path.join(__dirname, "data", "retirements.json"), "utf8")).models; } catch (e) { return []; }
+}
 
 async function loadPrices() {
   try {
@@ -105,7 +114,7 @@ async function prChanges(token, repo, num, re) {
   return { added: [...added].filter((x) => !removed.has(x)), removed: [...removed].filter((x) => !added.has(x)) };
 }
 
-function render({ found, unknown, byId, models, data, live, change, vol }) {
+function render({ found, unknown, byId, models, data, live, change, vol, retired = {} }) {
   const L = [MARK, "## LLM Cost Check", ""];
   if (!found.size && !unknown.size) { L.push("No OpenAI, Anthropic or Google model IDs found."); }
   if (change && (change.added.length || change.removed.length)) {
@@ -136,6 +145,16 @@ function render({ found, unknown, byId, models, data, live, change, vol }) {
     }
     L.push("");
   }
+  const ret = [...unknown.entries()].filter(([id]) => retired[id]).sort();
+  if (ret.length) {
+    L.push("### Retired or being switched over", "");
+    for (const [id, locs] of ret) {
+      const r = retired[id], to = byId[r.replacement];
+      L.push(`- ⚠️ \`${esc(id)}\` (${locs.slice(0, 2).map((x) => `\`${esc(x)}\``).join(", ")}${locs.length > 2 ? ` +${locs.length - 2} more` : ""}): from **${r.effective}**, ${esc(r.summary.charAt(0).toLowerCase() + r.summary.slice(1))}${to ? ` That is ${usd(to.pricing.standard.input)} / ${usd(to.pricing.standard.output)} per 1M tokens today.` : ""} A different model answers, so test it on your own examples. [Source](${r.source})`);
+    }
+    L.push("");
+    for (const [id] of ret) unknown.delete(id);
+  }
   if (unknown.size) {
     L.push("### Not in the current price list", "", "Older generations, aliases or IDs we do not track yet. Check that they are still offered and priced as you expect.", "");
     for (const [id, locs] of [...unknown.entries()].sort()) L.push(`- \`${esc(id)}\`: ${locs.slice(0, 2).map((x) => `\`${esc(x)}\``).join(", ")}${locs.length > 2 ? ` +${locs.length - 2} more` : ""}`);
@@ -151,6 +170,7 @@ async function main() {
   const vi = parseFloat(input("monthly-input-tokens")), vo = parseFloat(input("monthly-output-tokens"));
   const vol = vi > 0 || vo > 0 ? { i: vi > 0 ? vi : 0, o: vo > 0 ? vo : 0 } : null;
   const { data, live } = await loadPrices();
+  const retired = Object.fromEntries((await loadRetirements()).map((r) => [r.id, r]));
   const models = data.models; const byId = Object.fromEntries(models.map((m) => [m.id, m]));
   const known = new Set(models.map((m) => m.id));
   const re = buildMatchers(models);
@@ -168,8 +188,10 @@ async function main() {
   try { const e = ev ? JSON.parse(fs.readFileSync(ev, "utf8")) : {}; pr = e.pull_request ? e.pull_request.number : null; } catch (e) {}
   if (pr && token && repo) { try { change = await prChanges(token, repo, pr, re); } catch (e) { console.log("::warning::Could not read the pull request diff: " + e.message); } }
 
-  const md = render({ found, unknown, byId, models, data, live, change, vol });
+  const nRetired = [...unknown.keys()].filter((id) => retired[id]).length;
+  const md = render({ found, unknown, byId, models, data, live, change, vol, retired });
   const kinds = []; for (const id of found.keys()) for (const n of notesFor(byId[id], models)) if (n.kind !== "info") kinds.push(n.kind);
+  for (let i = 0; i < nRetired; i++) kinds.push("legacy");
   if (unknown.size) kinds.push("unknown");
   const warnings = kinds.length;
   console.log(md.replace(MARK + "\n", ""));

@@ -1,0 +1,27 @@
+{
+  "checked": "2026-11-09",
+  "license": "CC-BY-4.0",
+  "note": "Model IDs that providers have deprecated, with what happens to requests and from when. Each entry cites the provider page it comes from.",
+  "models": [
+    {
+      "id": "gemini-2.5-pro",
+      "provider": "Google",
+      "status": "deprecated",
+      "effective": "2026-12-01",
+      "action": "routed",
+      "replacement": "gemini-3.8-flash",
+      "summary": "Requests to gemini-2.5-pro are routed to Gemini 3.8 Flash and billed at Gemini 3.8 Flash rates.",
+      "source": "https://ai.google.dev/gemini-api/docs/pricing"
+    },
+    {
+      "id": "gemini-2.5-flash",
+      "provider": "Google",
+      "status": "deprecated",
+      "effective": "2026-12-01",
+      "action": "routed",
+      "replacement": "gemini-3.5-flash-lite",
+      "summary": "Requests to gemini-2.5-flash are routed to Gemini 3.5 Flash-Lite and billed at Gemini 3.5 Flash-Lite rates.",
+      "source": "https://ai.google.dev/gemini-api/docs/pricing"
+    }
+  ]
+}

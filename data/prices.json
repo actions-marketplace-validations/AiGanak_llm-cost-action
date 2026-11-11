@@ -11,7 +11,7 @@
   "unit": "per_million_tokens",
   "modality": "text",
   "tier_basis": "standard pay-as-you-go list price",
-  "checked": "2026-11-02",
+  "checked": "2026-11-09",
   "models": [
     {
       "id": "gpt-6-astra",
@@ -44,7 +44,7 @@
       "scheduled_changes": [],
       "source_url": "https://developers.openai.com/api/docs/models/gpt-6-astra",
       "reference_url": "https://aiganak.com/llm-api-pricing/gpt-6-astra/",
-      "checked": "2026-11-02"
+      "checked": "2026-11-09"
     },
     {
       "id": "gpt-6.1-sol",
@@ -77,7 +77,7 @@
       "scheduled_changes": [],
       "source_url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
       "reference_url": "https://aiganak.com/llm-api-pricing/gpt-6.1-sol/",
-      "checked": "2026-11-02"
+      "checked": "2026-11-09"
     },
     {
       "id": "gpt-6.1-terra",
@@ -110,7 +110,7 @@
       "scheduled_changes": [],
       "source_url": "https://developers.openai.com/api/docs/models/gpt-6.1-terra",
       "reference_url": "https://aiganak.com/llm-api-pricing/gpt-6.1-terra/",
-      "checked": "2026-11-02"
+      "checked": "2026-11-09"
     },
     {
       "id": "gpt-6-luna",
@@ -143,7 +143,7 @@
       "scheduled_changes": [],
       "source_url": "https://developers.openai.com/api/docs/models/gpt-6-luna",
       "reference_url": "https://aiganak.com/llm-api-pricing/gpt-6-luna/",
-      "checked": "2026-11-02"
+      "checked": "2026-11-09"
     },
     {
       "id": "claude-fable-5-1",
@@ -167,7 +167,7 @@
       "scheduled_changes": [],
       "source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
       "reference_url": "https://aiganak.com/llm-api-pricing/claude-fable-5-1/",
-      "checked": "2026-11-02"
+      "checked": "2026-11-09"
     },
     {
       "id": "claude-opus-5-5",
@@ -191,7 +191,7 @@
       "scheduled_changes": [],
       "source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
       "reference_url": "https://aiganak.com/llm-api-pricing/claude-opus-5-5/",
-      "checked": "2026-11-02"
+      "checked": "2026-11-09"
     },
     {
       "id": "claude-sonnet-5-5",
@@ -215,7 +215,7 @@
       "scheduled_changes": [],
       "source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
       "reference_url": "https://aiganak.com/llm-api-pricing/claude-sonnet-5-5/",
-      "checked": "2026-11-02"
+      "checked": "2026-11-09"
     },
     {
       "id": "claude-haiku-5-5",
@@ -248,7 +248,7 @@
       "scheduled_changes": [],
       "source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
       "reference_url": "https://aiganak.com/llm-api-pricing/claude-haiku-5-5/",
-      "checked": "2026-11-02"
+      "checked": "2026-11-09"
     },
     {
       "id": "claude-haiku-4-5",
@@ -272,7 +272,7 @@
       "scheduled_changes": [],
       "source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
       "reference_url": "https://aiganak.com/llm-api-pricing/claude-haiku-4-5/",
-      "checked": "2026-11-02"
+      "checked": "2026-11-09"
     },
     {
       "id": "gemini-4-argon",
@@ -309,7 +309,7 @@
       ],
       "source_url": "https://ai.google.dev/gemini-api/docs/pricing",
       "reference_url": "https://aiganak.com/llm-api-pricing/gemini-4-argon/",
-      "checked": "2026-11-02"
+      "checked": "2026-11-09"
     },
     {
       "id": "gemini-3.1-pro-preview",
@@ -341,7 +341,7 @@
       "scheduled_changes": [],
       "source_url": "https://ai.google.dev/gemini-api/docs/pricing",
       "reference_url": "https://aiganak.com/llm-api-pricing/gemini-3.1-pro-preview/",
-      "checked": "2026-11-02"
+      "checked": "2026-11-09"
     },
     {
       "id": "gemini-3.8-flash",
@@ -378,7 +378,7 @@
       ],
       "source_url": "https://ai.google.dev/gemini-api/docs/pricing",
       "reference_url": "https://aiganak.com/llm-api-pricing/gemini-3.8-flash/",
-      "checked": "2026-11-02"
+      "checked": "2026-11-09"
     },
     {
       "id": "gemini-3.5-flash-lite",
@@ -401,7 +401,7 @@
       "scheduled_changes": [],
       "source_url": "https://ai.google.dev/gemini-api/docs/pricing",
       "reference_url": "https://aiganak.com/llm-api-pricing/gemini-3.5-flash-lite/",
-      "checked": "2026-11-02"
+      "checked": "2026-11-09"
     },
     {
       "id": "gemini-3.1-flash-lite",
@@ -424,7 +424,7 @@
       "scheduled_changes": [],
       "source_url": "https://ai.google.dev/gemini-api/docs/pricing",
       "reference_url": "https://aiganak.com/llm-api-pricing/gemini-3.1-flash-lite/",
-      "checked": "2026-11-02"
+      "checked": "2026-11-09"
     }
   ]
 }
