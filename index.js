@@ -164,6 +164,45 @@ function render({ found, unknown, byId, models, data, live, change, vol, retired
   return L.join("\n");
 }
 
+// ---------- Budgets: prompt size, prompt growth and model price caps ----------
+// Tokens are estimated at 4 characters per token (close for English; non-English text usually takes more tokens).
+const estTokens = (t) => Math.ceil(t.length / 4);
+function promptFiles(globs) {
+  if (!globs.length) return [];
+  try { return execFileSync("git", ["ls-files", "-z", "--", ...globs.map((g) => ":(glob)" + g)], { encoding: "utf8" }).split("\0").filter(Boolean); }
+  catch (e) { return []; }
+}
+function baseText(sha, file) {
+  if (!sha) return null;
+  try { return execFileSync("git", ["show", `${sha}:${file}`], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], maxBuffer: 16 << 20 }); } catch (e) { return null; }
+}
+function checkBudgets({ globs, maxTokens, maxGrowth, maxPrice, baseSha, found, byId }) {
+  const rows = [], fails = [];
+  for (const f of promptFiles(globs)) {
+    let t; try { t = fs.readFileSync(f, "utf8"); } catch (e) { continue; }
+    const now = estTokens(t), b = baseText(baseSha, f), before = b === null ? null : estTokens(b);
+    const growth = before ? Math.round(((now - before) / before) * 100) : null;
+    const over = maxTokens > 0 && now > maxTokens, grew = maxGrowth > 0 && growth !== null && growth > maxGrowth;
+    if (over) fails.push(`${f} is about ${now.toLocaleString("en-US")} tokens (limit ${maxTokens.toLocaleString("en-US")})`);
+    if (grew) fails.push(`${f} grew ${growth}% in this pull request (limit ${maxGrowth}%)`);
+    rows.push({ f, before, now, growth, ok: !over && !grew });
+  }
+  const priced = [];
+  if (maxPrice > 0) for (const id of found.keys()) { const p = byId[id].pricing.standard.input; if (p > maxPrice) { priced.push(id); fails.push(`${byId[id].name} costs ${usd(p)} per 1M input tokens (cap ${usd(maxPrice)})`); } }
+  return { rows, fails, priced };
+}
+function renderBudgets(b, limits) {
+  if (!b.rows.length && !limits.maxPrice) return "";
+  const L = ["### Budgets", ""];
+  if (b.rows.length) {
+    L.push("| Prompt file | Before | Now | Change | |", "|---|---|---|---|---|");
+    for (const r of b.rows) L.push(`| \`${esc(r.f)}\` | ${r.before === null ? "new" : "≈" + r.before.toLocaleString("en-US")} | ≈${r.now.toLocaleString("en-US")} | ${r.growth === null ? "–" : (r.growth > 0 ? "+" : "") + r.growth + "%"} | ${r.ok ? "✅" : "❌"} |`);
+    L.push("", `<sub>Token counts are estimates at 4 characters per token; ${[limits.maxTokens ? `limit ${limits.maxTokens.toLocaleString("en-US")} tokens per file` : "", limits.maxGrowth ? `growth limit ${limits.maxGrowth}% per pull request` : ""].filter(Boolean).join(", ") || "no limits set"}. Non-English prompts usually take more tokens: see the [language token tax](${SITE}/language-token-tax/).</sub>`, "");
+  }
+  if (limits.maxPrice) L.push(b.priced.length ? `❌ Over the price cap of ${usd(limits.maxPrice)} per 1M input tokens: ${b.priced.map((x) => "`" + esc(x) + "`").join(", ")}` : `✅ No model over the price cap of ${usd(limits.maxPrice)} per 1M input tokens.`, "");
+  return L.join("\n");
+}
+
 async function main() {
   const root = input("path", ".");
   const failOn = input("fail-on", "none").toLowerCase().split(/[,\s]+/).filter(Boolean);
@@ -188,8 +227,17 @@ async function main() {
   try { const e = ev ? JSON.parse(fs.readFileSync(ev, "utf8")) : {}; pr = e.pull_request ? e.pull_request.number : null; } catch (e) {}
   if (pr && token && repo) { try { change = await prChanges(token, repo, pr, re); } catch (e) { console.log("::warning::Could not read the pull request diff: " + e.message); } }
 
+  let baseSha = null;
+  try { const e = ev ? JSON.parse(fs.readFileSync(ev, "utf8")) : {}; baseSha = e.pull_request ? e.pull_request.base.sha : null; } catch (e) {}
+  if (baseSha) { try { execFileSync("git", ["fetch", "--depth=1", "origin", baseSha], { stdio: "ignore" }); } catch (e) { /* growth check skipped */ } }
+  const limits = { maxTokens: parseInt(input("max-prompt-tokens"), 10) || 0, maxGrowth: parseFloat(input("max-prompt-growth")) || 0, maxPrice: parseFloat(input("max-input-price")) || 0 };
+  const globs = input("prompt-files").split(/[,\n]+/).map((x) => x.trim()).filter(Boolean);
+  const budgets = checkBudgets({ globs, ...limits, baseSha, found, byId });
+
   const nRetired = [...unknown.keys()].filter((id) => retired[id]).length;
-  const md = render({ found, unknown, byId, models, data, live, change, vol, retired });
+  let md = render({ found, unknown, byId, models, data, live, change, vol, retired });
+  const bmd = renderBudgets(budgets, limits);
+  if (bmd) { const at = md.lastIndexOf("<sub>Standard list prices"); md = md.slice(0, at) + bmd + "\n" + md.slice(at); }
   const kinds = []; for (const id of found.keys()) for (const n of notesFor(byId[id], models)) if (n.kind !== "info") kinds.push(n.kind);
   for (let i = 0; i < nRetired; i++) kinds.push("legacy");
   if (unknown.size) kinds.push("unknown");
@@ -198,7 +246,7 @@ async function main() {
   if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md.replace(MARK + "\n", "") + "\n");
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `models=${[...found.keys()].sort().join(",")}\nwarnings=${warnings}\n`);
 
-  if (pr && token && repo && input("comment", "true") === "true" && (found.size || unknown.size || (change && (change.added.length || change.removed.length)))) {
+  if (pr && token && repo && input("comment", "true") === "true" && (found.size || unknown.size || bmd || (change && (change.added.length || change.removed.length)))) {
     try {
       const cs = await gh(token, "GET", `/repos/${repo}/issues/${pr}/comments?per_page=100`);
       const mine = cs.find((c) => c.body && c.body.startsWith(MARK));
@@ -208,7 +256,10 @@ async function main() {
   }
   const hit = failOn.includes("any") ? warnings > 0 : failOn.some((k) => kinds.includes(k));
   if (hit) { console.log(`::error::LLM Cost Check found: ${[...new Set(kinds)].join(", ")}`); process.exitCode = 1; }
+  // Budgets are explicit limits the team set, so breaking one always fails the check.
+  for (const f of budgets.fails) console.log("::error::Budget: " + f);
+  if (budgets.fails.length) process.exitCode = 1;
 }
 
 if (require.main === module) main().catch((e) => { console.log("::error::" + e.message); process.exitCode = 1; });
-module.exports = { scanText, buildMatchers, notesFor, render };
+module.exports = { scanText, buildMatchers, notesFor, render, estTokens, renderBudgets };

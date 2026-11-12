@@ -20,6 +20,18 @@ inputs:
   monthly-output-tokens:
     description: "Optional. Your monthly output tokens per model."
     default: ""
+  prompt-files:
+    description: "Optional. Comma-separated globs of prompt files to budget (e.g. prompts/**/*.md, src/prompts/*.txt)."
+    default: ""
+  max-prompt-tokens:
+    description: "Optional. Fail if any prompt file is estimated above this many tokens."
+    default: ""
+  max-prompt-growth:
+    description: "Optional. Fail if a prompt file grows more than this percent in a pull request (e.g. 20)."
+    default: ""
+  max-input-price:
+    description: "Optional. Fail if the code uses a model priced above this many USD per 1M input tokens (e.g. 5)."
+    default: ""
   github-token:
     description: "Token used to read the pull request and post the comment."
     default: ${{ github.token }}

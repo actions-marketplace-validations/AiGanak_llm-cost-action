@@ -8,6 +8,7 @@ A GitHub Action that finds the OpenAI, Anthropic and Google model IDs in your co
 - a **cheaper model in the same tier**, if there is one
 - what changed when a pull request **switches models**, with the price difference and, if you give your volume, the monthly cost before and after
 - models a provider is **retiring or switching over**, with the date and what replaces them (for example Gemini 2.5 Pro and 2.5 Flash on 1 December 2026)
+- **budget breaks**: prompt files over a token limit, prompts that grew too much in one pull request, or models over a price cap
 - model-like IDs that are **not in the current price list** (older generations, typos, aliases)
 
 No API keys and no dependencies. Prices come from the open [AiGanak LLM price data](https://github.com/AiGanak/llm-prices), checked weekly against the providers' pricing pages.
@@ -29,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: AiGanak/llm-cost-action@v1.0.0
+      - uses: AiGanak/llm-cost-action@v1.1.0
         with:
           fail-on: none                    # or: price-increase, legacy, unknown, any
           # monthly-input-tokens: 50000000  # optional, adds dollar figures
@@ -59,6 +60,21 @@ And when a pull request moves from GPT-6.1 Sol to GPT-6.1 Terra with `monthly-in
 
 > - **GPT-6.1 Sol** ($2 / $10) → **GPT-6.1 Terra** ($1 / $5): input -50%, output -50%, about $200 → $100 a month at your stated volume
 
+## Budgets: stop cost regressions before they merge
+
+Set limits and the check fails any pull request that breaks them:
+
+```yaml
+      - uses: AiGanak/llm-cost-action@v1.2.0
+        with:
+          prompt-files: prompts/**/*.md
+          max-prompt-tokens: 2000     # no prompt file above ~2,000 tokens
+          max-prompt-growth: 25       # no prompt growing more than 25% in one PR
+          max-input-price: 5          # no model above $5 per 1M input tokens
+```
+
+Token counts are estimates (4 characters per token). The growth check compares each prompt file with the pull request's base branch.
+
 ## Inputs
 
 | Input | Default | What it does |
@@ -68,6 +84,10 @@ And when a pull request moves from GPT-6.1 Sol to GPT-6.1 Terra with `monthly-in
 | `fail-on` | `none` | Fail the check on `price-increase`, `legacy` (legacy or preview models), `unknown`, or `any`. Comma-separated. |
 | `monthly-input-tokens` | | Optional monthly input tokens per model, to show dollar figures. |
 | `monthly-output-tokens` | | Optional monthly output tokens per model. |
+| `prompt-files` | | Optional globs of prompt files to budget, e.g. `prompts/**/*.md`. |
+| `max-prompt-tokens` | | Fail if a prompt file is estimated above this many tokens. |
+| `max-prompt-growth` | | Fail if a prompt file grows more than this percent in one pull request. |
+| `max-input-price` | | Fail if the code uses a model priced above this many USD per 1M input tokens. |
 | `github-token` | `github.token` | Used to read the pull request and post the comment. |
 
 Outputs: `models` (comma-separated IDs found) and `warnings` (count).

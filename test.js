@@ -19,4 +19,7 @@ assert.deepStrictEqual(r.unknown.map((h) => h.id), ["gpt-4o", "o3"]);
 const byId = Object.fromEntries(data.models.map((m) => [m.id, m]));
 for (const m of data.models) for (const n of notesFor(m, data.models)) assert.ok(n.text.length > 10);
 assert.ok(notesFor(byId["claude-haiku-4-5"], data.models).some((n) => n.kind === "legacy"));
+const { estTokens, renderBudgets } = require("./index.js");
+assert.strictEqual(estTokens("abcdefgh"), 2);
+assert.ok(renderBudgets({ rows: [{ f: "p.md", before: 100, now: 150, growth: 50, ok: false }], fails: ["x"], priced: [] }, { maxTokens: 0, maxGrowth: 20, maxPrice: 0 }).includes("❌"));
 console.log("ok", ids.length, "known,", r.unknown.length, "unknown");
